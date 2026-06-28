@@ -11,11 +11,6 @@ const formatDate = (dateStr: string) => {
   });
 };
 
-const getPercentColor = (pct: number) => {
-  if (pct >= 75) return 'text-emerald-400';
-  if (pct >= 60) return 'text-amber-400';
-  return 'text-rose-400';
-};
 
 const getBadgeStyles = (pct: number) => {
   if (pct >= 75) return 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20';
