@@ -12,11 +12,26 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 5000;
 const MONGODB_URI = process.env.MONGODB_URI || '';
-const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:3000';
+const FRONTEND_URL = process.env.FRONTEND_URL || '';
+
+// Build allowed origins: env var (comma-separated), localhost defaults, and
+// the production Vercel URL so CORS works even without the env var set.
+const allowedOrigins = [
+  'http://localhost:3000',
+  'http://localhost:3001',
+  'http://localhost:5173',
+  'https://attendance-tracker-eight-self.vercel.app',
+  ...FRONTEND_URL.split(',').map((u) => u.trim()).filter(Boolean),
+];
 
 // Middleware
 app.use(cors({
-  origin: [FRONTEND_URL, 'http://localhost:3000', 'http://localhost:5173'],
+  origin: (origin, callback) => {
+    // Allow server-to-server / curl requests (no origin header)
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.includes(origin)) return callback(null, true);
+    callback(new Error(`CORS: origin ${origin} not allowed`));
+  },
   credentials: true,
 }));
 app.use(express.json());
