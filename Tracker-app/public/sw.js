@@ -28,8 +28,8 @@ self.addEventListener('fetch', (event) => {
   const { request } = event;
   const url = new URL(request.url);
 
-  // Skip API calls — always go to network
-  if (url.pathname.startsWith('/api')) return;
+  // Skip API calls and cross-origin requests — always go to network
+  if (url.pathname.startsWith('/api') || url.origin !== self.location.origin) return;
 
   // For navigation requests — serve app shell
   if (request.mode === 'navigate') {
