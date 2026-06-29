@@ -182,8 +182,13 @@ export const getStats = async (req: AuthRequest, res: Response): Promise<void> =
       return;
     }
 
-    // Calculate streak: consecutive days with records up to today
-    const records = await DailyRecord.find({ userId: req.userId! }).sort({ date: -1 }).lean();
+    // Calculate streak: only fetch the 'date' field for efficiency.
+    // Capping at 365 is more than enough for any real-world streak.
+    const records = await DailyRecord.find({ userId: req.userId! })
+      .sort({ date: -1 })
+      .select('date -_id')
+      .limit(365)
+      .lean();
     let streak = 0;
     const today = new Date();
     for (let i = 0; i < records.length; i++) {

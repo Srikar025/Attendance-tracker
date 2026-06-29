@@ -102,12 +102,14 @@ export const login = async (req: Request, res: Response): Promise<void> => {
 // GET /api/auth/me
 export const getMe = async (req: Request & { userId?: string }, res: Response): Promise<void> => {
   try {
-    const user = await User.findById(req.userId).select('-password');
+    const user = await User.findById(req.userId)
+      .select('username name totalClassesHeld totalClassesAttended createdAt')
+      .lean();
     if (!user) {
       res.status(404).json({ message: 'User not found' });
       return;
     }
-    res.json({ user: sanitizeUser(user) });
+    res.json({ user });
   } catch (err) {
     console.error('GetMe error:', err);
     res.status(500).json({ message: 'Server error' });

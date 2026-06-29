@@ -1,35 +1,25 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import BottomNav from '../components/BottomNav';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../components/Toast';
 import { userService } from '../services/userService';
-import { attendanceService } from '../services/attendanceService';
 import CircularProgress from '../components/CircularProgress';
 
 const Settings: React.FC = () => {
   const { user, updateUser } = useAuth();
   const { showToast } = useToast();
 
-  const [totalHeld, setTotalHeld] = useState('');
-  const [totalAttended, setTotalAttended] = useState('');
-  const [percentage, setPercentage] = useState(0);
+  // Initialize directly from the user object already in AuthContext —
+  // no extra API call needed (Home already fetched this data).
+  const [totalHeld, setTotalHeld] = useState(() => String(user?.totalClassesHeld ?? 0));
+  const [totalAttended, setTotalAttended] = useState(() => String(user?.totalClassesAttended ?? 0));
+  const [percentage, setPercentage] = useState(() => {
+    const h = user?.totalClassesHeld ?? 0;
+    const a = user?.totalClassesAttended ?? 0;
+    return h > 0 ? Math.round((a / h) * 100 * 10) / 10 : 0;
+  });
   const [isSaving, setIsSaving] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
-
-  const loadStats = useCallback(async () => {
-    try {
-      const stats = await attendanceService.getStats();
-      setTotalHeld(String(stats.totalHeld));
-      setTotalAttended(String(stats.totalAttended));
-      setPercentage(stats.percentage);
-    } catch {
-      // Fallback to user data
-      setTotalHeld(String(user?.totalClassesHeld ?? 0));
-      setTotalAttended(String(user?.totalClassesAttended ?? 0));
-    }
-  }, [user]);
-
-  useEffect(() => { loadStats(); }, [loadStats]);
 
   // Live calculate percentage
   useEffect(() => {
