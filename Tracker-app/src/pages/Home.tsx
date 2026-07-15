@@ -41,15 +41,19 @@ const Home: React.FC = () => {
 
   useEffect(() => { loadData(); }, [loadData]);
 
-  const handleSelectAttendance = async (num: number) => {
+  const handleSelectAttendance = (num: number) => {
     if (isSubmitting) return;
     setSelectedNum(num);
+  };
+
+  const handleSubmitAttendance = async () => {
+    if (selectedNum === null || isSubmitting) return;
     setIsSubmitting(true);
     try {
       const result = await attendanceService.createDaily({
         date: getTodayString(),
         classesHeld: 6, // Assumes a standard 6-class day
-        classesAttended: num,
+        classesAttended: selectedNum,
       });
       setStats(prev => prev ? { ...prev, ...result.updatedUser } : null);
       setTodayUpdated(true);
@@ -71,7 +75,6 @@ const Home: React.FC = () => {
       }
     } finally {
       setIsSubmitting(false);
-      setSelectedNum(null);
     }
   };
 
@@ -187,7 +190,24 @@ const Home: React.FC = () => {
               })}
             </div>
             
-            <p className="text-[10px] text-slate-500 text-center italic mt-2.5">
+            <button
+              id="attendance-submit-btn"
+              onClick={handleSubmitAttendance}
+              disabled={selectedNum === null || isSubmitting}
+              className={`w-full mt-4 py-3 px-5 rounded-xl font-semibold text-sm transition-all duration-200 flex items-center justify-center gap-2 active:scale-[0.98] cursor-pointer ${
+                selectedNum === null
+                  ? 'bg-[#1a2035] text-slate-500 border border-white/5 cursor-not-allowed opacity-50'
+                  : 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg shadow-indigo-600/35 border border-indigo-500'
+              }`}
+            >
+              {isSubmitting ? (
+                <span className="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+              ) : (
+                'Update Attendance'
+              )}
+            </button>
+
+            <p className="text-[10px] text-slate-500 text-center italic mt-3">
               * Assumes a standard 6-class day. You can edit this in the History tab later if needed.
             </p>
           </div>
