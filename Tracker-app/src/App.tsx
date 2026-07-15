@@ -2,6 +2,7 @@ import { lazy, Suspense } from 'react'
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { useAuth } from './context/AuthContext'
 import ProtectedRoute from './components/ProtectedRoute'
+import InstallPrompt from './components/InstallPrompt'
 import './App.css'
 
 // Lazy-load all page components — Vite will split each into its own chunk.
@@ -48,6 +49,9 @@ function App() {
         {/* Fallback */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
+
+      {/* PWA install prompt — shown on all pages */}
+      <InstallPrompt />
     </Suspense>
   )
 }

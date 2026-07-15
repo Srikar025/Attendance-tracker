@@ -76,6 +76,22 @@ body {
   animation: fadeIn 0.2s ease forwards;
 }
 
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
 /* ─── Input overrides for search calendar ─── */
 input[type="date"]::-webkit-calendar-picker-indicator {
   filter: invert(1);
