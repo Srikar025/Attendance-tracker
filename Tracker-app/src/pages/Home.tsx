@@ -22,10 +22,8 @@ const Home: React.FC = () => {
   const [stats, setStats] = useState<StatsResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [todayUpdated, setTodayUpdated] = useState(false);
-  const [heldToday, setHeldToday] = useState('');
-  const [attendedToday, setAttendedToday] = useState('');
-  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [selectedNum, setSelectedNum] = useState<number | null>(null);
 
   const loadData = useCallback(async () => {
     try {
@@ -43,26 +41,15 @@ const Home: React.FC = () => {
 
   useEffect(() => { loadData(); }, [loadData]);
 
-  const validateForm = (): boolean => {
-    const errs: Record<string, string> = {};
-    const held = parseInt(heldToday);
-    const attended = parseInt(attendedToday);
-    if (isNaN(held) || held < 0 || held > 20) errs.held = 'Enter a number between 0 and 20';
-    if (isNaN(attended) || attended < 0) errs.attended = 'Enter a valid number';
-    if (!isNaN(held) && !isNaN(attended) && attended > held) errs.attended = `Cannot exceed classes held (${held})`;
-    setFormErrors(errs);
-    return Object.keys(errs).length === 0;
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!validateForm()) return;
+  const handleSelectAttendance = async (num: number) => {
+    if (isSubmitting) return;
+    setSelectedNum(num);
     setIsSubmitting(true);
     try {
       const result = await attendanceService.createDaily({
         date: getTodayString(),
-        classesHeld: parseInt(heldToday),
-        classesAttended: parseInt(attendedToday),
+        classesHeld: 6, // Assumes a standard 6-class day
+        classesAttended: num,
       });
       setStats(prev => prev ? { ...prev, ...result.updatedUser } : null);
       setTodayUpdated(true);
@@ -84,6 +71,7 @@ const Home: React.FC = () => {
       }
     } finally {
       setIsSubmitting(false);
+      setSelectedNum(null);
     }
   };
 
@@ -159,57 +147,49 @@ const Home: React.FC = () => {
         {/* Update Form */}
         {!todayUpdated ? (
           <div className="bg-[#141927] border border-white/5 rounded-2xl p-5 hover:border-white/10 transition-colors">
-            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">Today's Update</p>
-            <form onSubmit={handleSubmit} id="attendance-form" className="flex flex-col gap-3.5">
-              <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-semibold text-slate-400 tracking-wider uppercase" htmlFor="classes-held">Classes held today</label>
-                <input
-                  id="classes-held"
-                  className={`w-full bg-[#1a2035] border rounded-xl px-3.5 py-3 text-sm text-slate-100 placeholder-slate-600 focus:outline-none focus:ring-4 transition-all duration-200 ${
-                    formErrors.held 
-                      ? 'border-rose-500 focus:border-rose-500 focus:ring-rose-500/10' 
-                      : 'border-white/5 focus:border-indigo-500 focus:ring-indigo-500/10'
-                  }`}
-                  type="number"
-                  min={0} max={20}
-                  placeholder="e.g. 6"
-                  value={heldToday}
-                  onChange={(e) => { setHeldToday(e.target.value); setFormErrors(p => ({ ...p, held: '' })); }}
-                />
-                {formErrors.held && <p className="text-xs text-rose-500 mt-1 pl-1">{formErrors.held}</p>}
-              </div>
+            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Today's Update</p>
+            <p className="text-xs text-slate-400 mb-4">How many classes did you attend today?</p>
+            
+            <div className="grid grid-cols-7 gap-1.5 mb-2">
+              {[0, 1, 2, 3, 4, 5, 6].map((num) => {
+                const isSelected = selectedNum === num;
+                
+                // Color coding for select / hover states
+                const getButtonStyles = () => {
+                  if (isSelected) {
+                    if (num === 0) return 'bg-rose-600 text-white shadow-lg shadow-rose-600/30 border border-rose-500';
+                    if (num <= 2) return 'bg-amber-600 text-white shadow-lg shadow-amber-600/30 border border-amber-500';
+                    if (num === 6) return 'bg-emerald-600 text-white shadow-lg shadow-emerald-600/30 border border-emerald-500';
+                    return 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/30 border border-indigo-500';
+                  }
+                  
+                  const base = 'bg-[#1a2035] border border-white/5 text-slate-200 hover:bg-white/5';
+                  if (num === 0) return `${base} hover:border-rose-500/40`;
+                  if (num <= 2) return `${base} hover:border-amber-500/40`;
+                  if (num === 6) return `${base} hover:border-emerald-500/40`;
+                  return `${base} hover:border-indigo-500/40`;
+                };
 
-              <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-semibold text-slate-400 tracking-wider uppercase" htmlFor="classes-attended">Classes attended today</label>
-                <input
-                  id="classes-attended"
-                  className={`w-full bg-[#1a2035] border rounded-xl px-3.5 py-3 text-sm text-slate-100 placeholder-slate-600 focus:outline-none focus:ring-4 transition-all duration-200 ${
-                    formErrors.attended 
-                      ? 'border-rose-500 focus:border-rose-500 focus:ring-rose-500/10' 
-                      : 'border-white/5 focus:border-indigo-500 focus:ring-indigo-500/10'
-                  }`}
-                  type="number"
-                  min={0}
-                  placeholder="e.g. 5"
-                  value={attendedToday}
-                  onChange={(e) => { setAttendedToday(e.target.value); setFormErrors(p => ({ ...p, attended: '' })); }}
-                />
-                {formErrors.attended && <p className="text-xs text-rose-500 mt-1 pl-1">{formErrors.attended}</p>}
-              </div>
-
-              <button
-                id="attendance-submit"
-                type="submit"
-                className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-semibold py-3 px-5 rounded-xl transition-all duration-200 shadow-lg shadow-indigo-600/30 flex items-center justify-center gap-2 active:scale-[0.98] cursor-pointer disabled:opacity-50"
-                disabled={isSubmitting}
-              >
-                {isSubmitting ? (
-                  <span className="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin" />
-                ) : (
-                  'Update Attendance'
-                )}
-              </button>
-            </form>
+                return (
+                  <button
+                    key={num}
+                    onClick={() => handleSelectAttendance(num)}
+                    disabled={isSubmitting}
+                    className={`h-11 rounded-xl font-bold text-sm transition-all duration-150 active:scale-90 flex items-center justify-center cursor-pointer ${getButtonStyles()}`}
+                  >
+                    {isSubmitting && isSelected ? (
+                      <span className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+                    ) : (
+                      num
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+            
+            <p className="text-[10px] text-slate-500 text-center italic mt-2.5">
+              * Assumes a standard 6-class day. You can edit this in the History tab later if needed.
+            </p>
           </div>
         ) : (
           <div className="bg-[#22c55e]/5 border border-emerald-500/10 rounded-2xl p-5 flex items-center gap-3">
@@ -224,6 +204,7 @@ const Home: React.FC = () => {
             </div>
           </div>
         )}
+
 
         {/* Attendance Status hint */}
         <div className="bg-[#141927] border border-white/5 rounded-2xl px-4 py-3">
