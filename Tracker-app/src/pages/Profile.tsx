@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import BottomNav from '../components/BottomNav';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../components/Toast';
@@ -11,6 +11,58 @@ const Profile: React.FC = () => {
   const [newName, setNewName] = useState(user?.name || '');
   const [isSaving, setIsSaving] = useState(false);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
+
+  const [isStandalone, setIsStandalone] = useState(false);
+  const [promptEvent, setPromptEvent] = useState<any>(null);
+  const [showIOSInstructions, setShowIOSInstructions] = useState(false);
+
+  useEffect(() => {
+    // Check if running as PWA
+    const checkStandalone = window.matchMedia('(display-mode: standalone)').matches || 
+                            (window.navigator as any).standalone === true;
+    setIsStandalone(checkStandalone);
+
+    // Initial check for deferredPrompt
+    if ((window as any).deferredPrompt) {
+      setPromptEvent((window as any).deferredPrompt);
+    }
+
+    // Listen for custom event if it becomes available later
+    const handlePromptAvailable = () => {
+      setPromptEvent((window as any).deferredPrompt);
+    };
+
+    window.addEventListener('pwa-prompt-available', handlePromptAvailable);
+    return () => window.removeEventListener('pwa-prompt-available', handlePromptAvailable);
+  }, []);
+
+  const handleInstallClick = async () => {
+    // If Apple device
+    const isAppleDevice = /iPhone|iPad|iPod/.test(navigator.userAgent) || 
+                         (navigator.maxTouchPoints > 0 && /Macintosh/.test(navigator.userAgent));
+    if (isAppleDevice) {
+      setShowIOSInstructions(true);
+      return;
+    }
+
+    const event = promptEvent || (window as any).deferredPrompt;
+    if (event) {
+      try {
+        await event.prompt();
+        const { outcome } = await event.userChoice;
+        if (outcome === 'accepted') {
+          (window as any).deferredPrompt = null;
+          setPromptEvent(null);
+          showToast('Thank you for installing! 🎉', 'success');
+        }
+      } catch (err) {
+        console.warn('Installation prompt failed:', err);
+      }
+    } else {
+      // Browser didn't support or fire it yet
+      showToast("Open your browser menu (3 dots) and select 'Install app' or 'Add to Home Screen' to download.", 'info');
+    }
+  };
 
   const handleSaveName = async () => {
     if (!newName.trim() || newName.trim().length < 2) {
@@ -128,6 +180,21 @@ const Profile: React.FC = () => {
         >
           🚪 Sign Out
         </button>
+
+        {/* PWA Install Section */}
+        {!isStandalone ? (
+          <button
+            id="profile-install-btn"
+            onClick={handleInstallClick}
+            className="w-full bg-indigo-500/10 hover:bg-indigo-600 border border-indigo-500/25 text-indigo-400 hover:text-white font-semibold py-3 px-5 rounded-xl transition-all duration-200 active:scale-98 cursor-pointer mt-3 flex items-center justify-center gap-2 shadow-lg hover:shadow-indigo-500/10"
+          >
+            📲 Install App on Mobile
+          </button>
+        ) : (
+          <div className="w-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 font-semibold py-3 px-5 rounded-xl text-center mt-3 text-sm flex items-center justify-center gap-2">
+            ✨ AttendTrack is installed
+          </div>
+        )}
       </div>
 
       {/* Logout Confirmation Modal */}
@@ -157,6 +224,48 @@ const Profile: React.FC = () => {
                 Sign Out
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* iOS Manual Installation Guide Modal */}
+      {showIOSInstructions && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[200] p-6 animate-fade-in" onClick={() => setShowIOSInstructions(false)}>
+          <div className="bg-[#141927] border border-white/10 rounded-2xl p-6 w-full max-w-[350px] shadow-2xl relative z-50 flex flex-col gap-4 animate-scale-up" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl flex items-center justify-center text-xl flex-shrink-0 bg-indigo-500/10 text-indigo-400">
+                  📊
+                </div>
+                <div>
+                  <h2 className="text-base font-bold text-slate-100">Install AttendTrack</h2>
+                  <p className="text-[11px] text-slate-400">iPhone / iPad Instructions</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowIOSInstructions(false)}
+                className="w-7 h-7 rounded-full flex items-center justify-center text-slate-400 hover:bg-white/10"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="bg-white/5 rounded-xl p-3.5 border border-white/5 text-slate-300 text-xs leading-relaxed space-y-2">
+              <p className="font-semibold text-white">To install this app on your iPhone:</p>
+              <ol className="list-decimal pl-4 space-y-1.5 text-slate-400">
+                <li>Open this site in <strong className="text-white">Safari</strong> browser.</li>
+                <li>Tap the <strong className="text-white">Share</strong> button at the bottom (<span className="inline-block px-1 bg-white/10 rounded">📤</span>).</li>
+                <li>Scroll down and select <strong className="text-white">Add to Home Screen</strong>.</li>
+                <li>Tap <strong className="text-indigo-400">Add</strong> in the top-right corner.</li>
+              </ol>
+            </div>
+
+            <button
+              className="w-full bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold py-2.5 px-4 rounded-xl cursor-pointer transition-all duration-200 active:scale-95"
+              onClick={() => setShowIOSInstructions(false)}
+            >
+              Got it
+            </button>
           </div>
         </div>
       )}

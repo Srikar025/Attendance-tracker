@@ -16,6 +16,14 @@ if ('serviceWorker' in navigator) {
   });
 }
 
+// Global PWA installation event capturing
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  (window as any).deferredPrompt = e;
+  // Dispatch a custom event so listener components can update their state
+  window.dispatchEvent(new CustomEvent('pwa-prompt-available'));
+});
+
 createRoot(document.getElementById('root')!).render(
 
     <BrowserRouter>
