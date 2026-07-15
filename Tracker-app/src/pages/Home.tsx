@@ -23,7 +23,8 @@ const Home: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [todayUpdated, setTodayUpdated] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [selectedNum, setSelectedNum] = useState<number | null>(null);
+  const [heldNum, setHeldNum] = useState<number>(6);
+  const [attendedNum, setAttendedNum] = useState<number | null>(null);
 
   const loadData = useCallback(async () => {
     try {
@@ -41,19 +42,29 @@ const Home: React.FC = () => {
 
   useEffect(() => { loadData(); }, [loadData]);
 
-  const handleSelectAttendance = (num: number) => {
+  const handleSelectHeld = (num: number) => {
     if (isSubmitting) return;
-    setSelectedNum(num);
+    setHeldNum(num);
+    // If the new number of classes held is less than the current attended classes selection,
+    // reset or clamp the attended classes selection
+    if (attendedNum !== null && attendedNum > num) {
+      setAttendedNum(null);
+    }
+  };
+
+  const handleSelectAttended = (num: number) => {
+    if (isSubmitting || num > heldNum) return;
+    setAttendedNum(num);
   };
 
   const handleSubmitAttendance = async () => {
-    if (selectedNum === null || isSubmitting) return;
+    if (attendedNum === null || isSubmitting) return;
     setIsSubmitting(true);
     try {
       const result = await attendanceService.createDaily({
         date: getTodayString(),
-        classesHeld: 6, // Assumes a standard 6-class day
-        classesAttended: selectedNum,
+        classesHeld: heldNum,
+        classesAttended: attendedNum,
       });
       setStats(prev => prev ? { ...prev, ...result.updatedUser } : null);
       setTodayUpdated(true);
@@ -149,53 +160,76 @@ const Home: React.FC = () => {
 
         {/* Update Form */}
         {!todayUpdated ? (
-          <div className="bg-[#141927] border border-white/5 rounded-2xl p-5 hover:border-white/10 transition-colors">
-            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Today's Update</p>
-            <p className="text-xs text-slate-400 mb-4">How many classes did you attend today?</p>
+          <div className="bg-[#141927] border border-white/5 rounded-2xl p-5 hover:border-[#1e293b] transition-all duration-200 shadow-xl">
+            <p className="text-sm font-bold text-slate-100 mb-4">📅 Today's Update</p>
             
+            {/* Total Classes Held Row */}
+            <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Total Classes Held Today</p>
+            <div className="grid grid-cols-7 gap-1.5 mb-5">
+              {[0, 1, 2, 3, 4, 5, 6].map((num) => {
+                const isSelected = heldNum === num;
+                return (
+                  <button
+                    key={`held-${num}`}
+                    onClick={() => handleSelectHeld(num)}
+                    disabled={isSubmitting}
+                    className={`h-11 rounded-xl font-bold text-sm transition-all duration-150 active:scale-90 flex items-center justify-center cursor-pointer ${
+                      isSelected
+                        ? 'bg-indigo-600 text-white border border-indigo-500 shadow-lg shadow-indigo-600/30'
+                        : 'bg-[#1a2035] border border-white/5 text-slate-200 hover:bg-white/5 hover:border-indigo-500/40'
+                    }`}
+                  >
+                    {num}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Classes Attended Row */}
+            <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Classes Attended Today</p>
             <div className="grid grid-cols-7 gap-1.5 mb-2">
               {[0, 1, 2, 3, 4, 5, 6].map((num) => {
-                const isSelected = selectedNum === num;
+                const isSelected = attendedNum === num;
+                const isDisabled = num > heldNum; // cannot attend more than classes held
                 
                 // Color coding for select / hover states
                 const getButtonStyles = () => {
+                  if (isDisabled) {
+                    return 'bg-slate-900/40 border border-white/5 text-slate-600 cursor-not-allowed opacity-20';
+                  }
                   if (isSelected) {
                     if (num === 0) return 'bg-rose-600 text-white shadow-lg shadow-rose-600/30 border border-rose-500';
                     if (num <= 2) return 'bg-amber-600 text-white shadow-lg shadow-amber-600/30 border border-amber-500';
-                    if (num === 6) return 'bg-emerald-600 text-white shadow-lg shadow-emerald-600/30 border border-emerald-500';
+                    if (num === heldNum && heldNum > 0) return 'bg-emerald-600 text-white shadow-lg shadow-emerald-600/30 border border-emerald-500'; // 100% attendance
                     return 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/30 border border-indigo-500';
                   }
                   
                   const base = 'bg-[#1a2035] border border-white/5 text-slate-200 hover:bg-white/5';
                   if (num === 0) return `${base} hover:border-rose-500/40`;
                   if (num <= 2) return `${base} hover:border-amber-500/40`;
-                  if (num === 6) return `${base} hover:border-emerald-500/40`;
+                  if (num === heldNum) return `${base} hover:border-emerald-500/40`;
                   return `${base} hover:border-indigo-500/40`;
                 };
 
                 return (
                   <button
-                    key={num}
-                    onClick={() => handleSelectAttendance(num)}
-                    disabled={isSubmitting}
-                    className={`h-11 rounded-xl font-bold text-sm transition-all duration-150 active:scale-90 flex items-center justify-center cursor-pointer ${getButtonStyles()}`}
+                    key={`attended-${num}`}
+                    onClick={() => handleSelectAttended(num)}
+                    disabled={isDisabled || isSubmitting}
+                    className={`h-11 rounded-xl font-bold text-sm transition-all duration-150 active:scale-90 flex items-center justify-center ${getButtonStyles()}`}
                   >
-                    {isSubmitting && isSelected ? (
-                      <span className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin" />
-                    ) : (
-                      num
-                    )}
+                    {num}
                   </button>
                 );
               })}
             </div>
-            
+
             <button
               id="attendance-submit-btn"
               onClick={handleSubmitAttendance}
-              disabled={selectedNum === null || isSubmitting}
-              className={`w-full mt-4 py-3 px-5 rounded-xl font-semibold text-sm transition-all duration-200 flex items-center justify-center gap-2 active:scale-[0.98] cursor-pointer ${
-                selectedNum === null
+              disabled={attendedNum === null || isSubmitting}
+              className={`w-full mt-5 py-3 px-5 rounded-xl font-semibold text-sm transition-all duration-200 flex items-center justify-center gap-2 active:scale-[0.98] cursor-pointer ${
+                attendedNum === null
                   ? 'bg-[#1a2035] text-slate-500 border border-white/5 cursor-not-allowed opacity-50'
                   : 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg shadow-indigo-600/35 border border-indigo-500'
               }`}
@@ -206,6 +240,7 @@ const Home: React.FC = () => {
                 'Update Attendance'
               )}
             </button>
+
 
             <p className="text-[10px] text-slate-500 text-center italic mt-3">
               * Assumes a standard 6-class day. You can edit this in the History tab later if needed.
