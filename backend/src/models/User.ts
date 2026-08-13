@@ -3,10 +3,13 @@ import bcrypt from 'bcryptjs';
 
 export interface IUser extends Document {
   username: string;
+  email: string;
   password: string;
   name: string;
   totalClassesHeld: number;
   totalClassesAttended: number;
+  resetOtp?: string;
+  resetOtpExpires?: Date;
   createdAt: Date;
   comparePassword(candidatePassword: string): Promise<boolean>;
 }
@@ -22,6 +25,14 @@ const UserSchema = new Schema<IUser>(
       minlength: 3,
       maxlength: 20,
       match: /^[a-z0-9_]+$/,
+    },
+    email: {
+      type: String,
+      required: true,
+      unique: true,
+      lowercase: true,
+      trim: true,
+      match: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
     },
     password: {
       type: String,
@@ -44,6 +55,14 @@ const UserSchema = new Schema<IUser>(
       type: Number,
       default: 0,
       min: 0,
+    },
+    resetOtp: {
+      type: String,
+      default: undefined,
+    },
+    resetOtpExpires: {
+      type: Date,
+      default: undefined,
     },
   },
   { timestamps: true }

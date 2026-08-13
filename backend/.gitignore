@@ -1,0 +1,20 @@
+# Dependencies
+node_modules/
+
+# Production build output
+dist/
+
+# Environment variables & secrets (DO NOT COMMIT)
+.env
+.env.local
+.env.*.local
+
+# Logs
+logs
+*.log
+npm-debug.log*
+
+# OS & IDE files
+.DS_Store
+.vscode/
+.idea/
