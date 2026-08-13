@@ -96,6 +96,11 @@ PORT=5000
 MONGODB_URI=mongodb+srv://<username>:<password>@<cluster>.mongodb.net/attendance-tracker?retryWrites=true&w=majority
 JWT_SECRET=your_super_secret_jwt_key_here
 FRONTEND_URL=http://localhost:5173,http://localhost:3000,http://localhost:3001
+
+# Brevo (Sendinblue) Email Service Configuration
+BREVO_API_KEY=xkeysib-your_brevo_api_key_here
+BREVO_SENDER_EMAIL=your_verified_sender@domain.com
+BREVO_SENDER_NAME=Attendance Tracker
 ```
 
 ### 2. Frontend (`Tracker-app/.env`)
@@ -140,8 +145,11 @@ Open your browser and navigate to `http://localhost:5173`.
 ### **Authentication (`/api/auth`)**
 | Method | Endpoint | Description | Auth Required |
 |--------|----------|-------------|---------------|
-| `POST` | `/api/auth/signup` | Register a new user | No |
-| `POST` | `/api/auth/login` | Authenticate user & return JWT | No |
+| `POST` | `/api/auth/signup` | Register a new user with Name, Email, Username, & Password | No |
+| `POST` | `/api/auth/login` | Authenticate user (Username or Email) & return JWT | No |
+| `POST` | `/api/auth/forgot-password` | Generate & send 6-digit OTP code to user email via Brevo | No |
+| `POST` | `/api/auth/verify-otp` | Validate 6-digit OTP code expiration & correctness | No |
+| `POST` | `/api/auth/reset-password` | Verify OTP code & set new hashed password | No |
 | `GET`  | `/api/auth/me` | Fetch active user profile | Yes |
 
 ### **Attendance Management (`/api/attendance`)**

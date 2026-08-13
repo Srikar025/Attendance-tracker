@@ -6,6 +6,7 @@ import { useToast } from '../components/Toast';
 
 const Signup: React.FC = () => {
   const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -18,6 +19,11 @@ const Signup: React.FC = () => {
     const newErrors: Record<string, string> = {};
     if (!name.trim() || name.trim().length < 2) newErrors.name = 'Name must be at least 2 characters';
     if (name.trim().length > 50) newErrors.name = 'Name cannot exceed 50 characters';
+    
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!email.trim()) newErrors.email = 'Email address is required';
+    else if (!emailRegex.test(email.trim())) newErrors.email = 'Please enter a valid email address';
+
     if (!username.trim() || username.trim().length < 3) newErrors.username = 'Username must be at least 3 characters';
     if (username.trim().length > 20) newErrors.username = 'Username cannot exceed 20 characters';
     if (!/^[a-z0-9_]+$/i.test(username)) newErrors.username = 'Only letters, numbers, and underscores allowed';
@@ -33,9 +39,10 @@ const Signup: React.FC = () => {
     setIsLoading(true);
     try {
       const data = await authService.signup({
+        name: name.trim(),
+        email: email.toLowerCase().trim(),
         username: username.toLowerCase().trim(),
         password,
-        name: name.trim(),
       });
       login(data.token, data.user);
       showToast(`Account created! Welcome, ${data.user.name}! 🎉`, 'success');
@@ -90,6 +97,24 @@ const Signup: React.FC = () => {
           </div>
 
           <div className="flex flex-col gap-1.5">
+            <label className="text-xs font-semibold text-slate-400 tracking-wider uppercase" htmlFor="signup-email">Email Address</label>
+            <input
+              id="signup-email"
+              className={`w-full bg-[#1a2035] border rounded-xl px-3.5 py-3 text-sm text-slate-100 placeholder-slate-600 focus:outline-none focus:ring-4 transition-all duration-200 ${
+                errors.email 
+                  ? 'border-rose-500 focus:border-rose-500 focus:ring-rose-500/10' 
+                  : 'border-white/5 focus:border-indigo-500 focus:ring-indigo-500/10'
+              }`}
+              type="email"
+              placeholder="john@example.com"
+              value={email}
+              onChange={(e) => { setEmail(e.target.value); setErrors(p => ({ ...p, email: '' })); }}
+              autoComplete="email"
+            />
+            {errors.email && <p className="text-xs text-rose-500 mt-1 pl-1">{errors.email}</p>}
+          </div>
+
+          <div className="flex flex-col gap-1.5">
             <label className="text-xs font-semibold text-slate-400 tracking-wider uppercase" htmlFor="signup-username">Username</label>
             <input
               id="signup-username"
@@ -130,7 +155,7 @@ const Signup: React.FC = () => {
           <button
             id="signup-submit"
             type="submit"
-            className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-semibold py-3 px-5 rounded-xl transition-all duration-200 shadow-lg shadow-indigo-600/30 flex items-center justify-center gap-2 active:scale-[0.98] cursor-pointer disabled:opacity-50"
+            className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-semibold py-3 px-5 rounded-xl transition-all duration-200 shadow-lg shadow-indigo-600/30 flex items-center justify-center gap-2 active:scale-[0.98] cursor-pointer disabled:opacity-50 mt-2"
             disabled={isLoading}
           >
             {isLoading ? (
@@ -151,4 +176,3 @@ const Signup: React.FC = () => {
 };
 
 export default Signup;
-
